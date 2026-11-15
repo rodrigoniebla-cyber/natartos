@@ -50,6 +50,19 @@ static unlock_bmp_fn g_unlock_bmp = 0;
 static new_obj_fn g_new_obj = 0;
 static void *g_vmt_res_bmp = 0;
 
+/* ── Menu spy (recon, read-only) ──
+ * When the flag file exists, log the class (VMT symbol) of every menu/list
+ * that reloads — once per class. Open a screen on the goggles, then read
+ * natartos.log to learn which class draws it (e.g. the device picker).
+ * Nothing is modified. */
+#define SPY_FLAG "/data/local/tmp/natartos_menu_spy"
+#define SPY_MAX_SEEN 64
+typedef struct { const char *dli_fname; void *dli_fbase; const char *dli_sname; void *dli_saddr; } dl_info_t;
+typedef int (*dladdr_fn)(const void *addr, dl_info_t *info);
+static dladdr_fn g_dladdr = 0;
+static void *g_spy_seen[SPY_MAX_SEEN];
+static int g_spy_n = 0;
+
 /* ── Menu slot registry ── */
 
 #define MAX_STR  64
@@ -343,6 +356,30 @@ static void inject_items(void *self, void *menudata) {
     NTLOG_INT("inject: done, items=", g_slot_count);
 }
 
+static void spy_log(void *self) {
+    if (sys_faccessat(AT_FDCWD, SPY_FLAG, F_OK) != 0) return;
+    void *vmt = *(void **)self;
+    for (int i = 0; i < g_spy_n; i++) if (g_spy_seen[i] == vmt) return;
+    if (g_spy_n < SPY_MAX_SEEN) g_spy_seen[g_spy_n++] = vmt;
+    char msg[200];
+    const char *pre = "spy: Reload class=";
+    int i = 0;
+    while (*pre) msg[i++] = *pre++;
+    dl_info_t info;
+    natartos_memset(&info, 0, sizeof info);
+    const char *name = 0;
+    if (g_dladdr && g_dladdr(vmt, &info) && info.dli_sname && info.dli_saddr == vmt)
+        name = info.dli_sname;
+    if (name) {
+        while (*name && i < 190) msg[i++] = *name++;
+        msg[i] = 0;
+        NTLOG(msg);
+    } else {
+        msg[i] = 0;
+        NTLOG_HEX("spy: Reload class=? vmt=", (unsigned long)vmt);
+    }
+}
+
 /* PLT interposition — intercepts ALL Reload calls, filters for MoreMenu */
 void MxBindableAbstractMenu_Reload(void *self) {
     static int s_log_once = 0;
@@ -354,6 +391,7 @@ void MxBindableAbstractMenu_Reload(void *self) {
     }
     if (!orig) return;
     orig(self);
+    spy_log(self);
 
     if (!g_more_menu_vmt) return;
     void **obj_vmt = *(void ***)self;
@@ -384,6 +422,7 @@ int natartos_mod_init(void *(*loader_dlsym)(void *, const char *)) {
     g_unlock_bmp = (unlock_bmp_fn)loader_dlsym(RTLD_DEFAULT, "EwUnlockBitmap");
     g_new_obj = (new_obj_fn)loader_dlsym(RTLD_DEFAULT, "EwNewObjectIndirect");
     g_vmt_res_bmp = loader_dlsym(RTLD_DEFAULT, "__vmt_ResourcesBitmap");
+    g_dladdr = (dladdr_fn)loader_dlsym(RTLD_DEFAULT, "dladdr");
     NTLOG("=== init done ===");
     return 1;
 }

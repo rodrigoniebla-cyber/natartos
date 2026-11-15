@@ -59,3 +59,27 @@ Action value layout (at `[4]`):
 
 EwSignal PLT interposition causes SIGSEGV after 30-40s. Keep signal-related
 functions `static`. Action dispatch uses marker-based slot patching on f[4]+0x20.
+
+## Device picker ("Computer" entry) — recon in progress
+
+Goal: add a **Computer** entry to the goggles' device picker (next to the air
+units / Avata 2) that starts PC Stream, so a Mac/PC running toolya-display (or
+the web PC Stream) shows up as a "device".
+
+Unknown yet: which class draws the picker, and whether it is an
+`MxBindableAbstractMenu` (the same injection path as the More menu) or a
+different list type.
+
+Recon (read-only):
+1. `touch /data/local/tmp/natartos_menu_spy`, then restart mods.
+2. Open the device picker on the goggles (and a couple of other menus, for contrast).
+3. `grep "spy:" /data/local/tmp/natartos.log`: each list class is logged once
+   on Reload (`__vmt_...` name via dladdr).
+4. `sh scripts/dump_device_picker_symbols.sh`: vtables/functions matching
+   Device|Product|Aircraft|Uav|Switch|Pair|Bind|Link.
+5. `rm /data/local/tmp/natartos_menu_spy` when done.
+
+If the picker appears in the spy log, it's an `MxBindableAbstractMenu` and the
+More-menu technique (clone a stock item, patch title/action, AddItemFromData)
+should carry over. If it doesn't appear, the picker uses another list type and
+needs its own hook.
