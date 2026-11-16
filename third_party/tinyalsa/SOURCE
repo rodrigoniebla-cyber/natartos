@@ -1,0 +1,1 @@
+tinyalsa 1.1.1 (https://github.com/tinyalsa/tinyalsa, tag 1.1.1): src/pcm.c, src/limits.c, include/tinyalsa/*.h. BSD-3-Clause, see NOTICE.

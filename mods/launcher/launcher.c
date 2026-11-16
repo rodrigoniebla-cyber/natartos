@@ -23,8 +23,8 @@
  *           !<command>      full-screen app: runs in the foreground, then back here
  *           <command>       run in the background, stay here
  *   ICON_PATH: NC01 .rgba (assets/icons/README.md), a built-in icon (@goggles,
- *              @speaker — drawn muted when its toggle is on), or empty for a
- *              letter icon.
+ *              @video, @speaker — drawn muted when its toggle is on), or empty
+ *              for a letter icon.
  *   REQUIRES_PATH: tile hidden unless this path exists (empty = always shown).
  *
  * Paths are overridable for host testing: NATARTOS_TMP (default /data/local/tmp),
@@ -198,6 +198,8 @@ static void load_tiles(void) {
         "!touch %s/fb_override; /vendor/natartos/apps/doom/doom_goggles -iwad /vendor/natartos/apps/doom/freedoom1.wad; rm -f %s/fb_override",
         T, T);
     add_tile_line(l);
+    add_tile_line("Videos|From the SD card|@video|/vendor/natartos/apps/player/player|"
+                  "!/vendor/natartos/apps/player/player");
     snprintf(l, sizeof l, "Mute All|Goggle sounds|@speaker|/vendor/natartos/enabled/mod_mute.so|@toggle:%s/natartos_mute", T);
     add_tile_line(l);
     snprintf(l, sizeof l, "Mute Buttons|Button clicks|@speaker|/vendor/natartos/enabled/mod_mute.so|@toggle:%s/natartos_mute_buttons", T);
@@ -446,6 +448,10 @@ static void draw_tile(int i) {
         rrect(icx + 6, icy - 30, 64, 52, 18, FG);
         rect(icx - 8, icy - 14, 16, 10, FG);                 /* bridge */
         rect(icx - 82, icy - 40, 164, 10, FG);               /* strap line */
+    } else if (!strcmp(t->icon, "@video")) {
+        disc(icx, icy, 96, accent_for(t->name));
+        rrect(icx - 62, icy - 44, 124, 88, 16, FG);           /* screen */
+        tri(icx - 16, icy - 26, icx - 16, icy + 26, icx + 28, icy, accent_for(t->name));
     } else if (!strcmp(t->icon, "@speaker")) {
         int muted = toggle_on(t);
         disc(icx, icy, 96, muted ? (rgb){0x5A,0x60,0x6B} : accent_for(t->name));

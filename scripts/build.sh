@@ -24,6 +24,7 @@ docker run --rm \
   -v "$SRC_DIR:/src:ro" \
   -v "$MODS_DIR:/mods:ro" \
   -v "$BASE_DIR/include:/include:ro" \
+  -v "$BASE_DIR/third_party:/third_party:ro" \
   -v "$DIST_DIR:/dist" \
   --platform linux/amd64 gcc:13 bash -c "
   apt-get update -qq && apt-get install -y -qq gcc-aarch64-linux-gnu >/dev/null 2>&1
@@ -67,6 +68,13 @@ docker run --rm \
     chmod 755 /dist/fb_receiver
     echo \"[natartos] fb_receiver (\$(stat -c%s /dist/fb_receiver) bytes)\"
   fi
+  # player: static aarch64 video player (pl_mpeg + static tinyalsa)
+  if [ -f /mods/player/player.c ]; then
+    $CC -static -O2 -I/include -I/third_party -I/third_party/tinyalsa/include -o /dist/player \\
+      /mods/player/player.c /third_party/tinyalsa/pcm.c /third_party/tinyalsa/limits.c -lpthread -lm
+    chmod 755 /dist/player
+    echo \"[natartos] player (\$(stat -c%s /dist/player) bytes)\"
+  fi
   # launcher: static aarch64 binary for the Home screen
   if [ -f /mods/launcher/launcher.c ]; then
     $CC -static -O2 -I/include -o /dist/launcher /mods/launcher/launcher.c
@@ -102,6 +110,11 @@ fi
 APPS_DIR="$BASE_DIR/assets/apps"
 if [ -d "$APPS_DIR" ]; then
     cp -r "$APPS_DIR" "$DIST_DIR/apps"
+fi
+# Video player → /vendor/natartos/apps/player/player
+if [ -f "$DIST_DIR/player" ]; then
+    mkdir -p "$DIST_DIR/apps/player"
+    cp "$DIST_DIR/player" "$DIST_DIR/apps/player/player"
 fi
 # Home launcher → /vendor/natartos/apps/launcher/launcher (picked up by the manifest)
 if [ -f "$DIST_DIR/launcher" ]; then

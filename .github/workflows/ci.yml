@@ -55,6 +55,11 @@ jobs:
       - name: Build launcher (compile check — ships once tested on hardware)
         run: aarch64-linux-gnu-gcc -static -O2 -Wall -I include -o /tmp/launcher mods/launcher/launcher.c
 
+      - name: Build player (compile check — ships once tested on hardware)
+        run: >
+          aarch64-linux-gnu-gcc -static -O2 -Wall -I include -I third_party -I third_party/tinyalsa/include
+          -o /tmp/player mods/player/player.c third_party/tinyalsa/pcm.c third_party/tinyalsa/limits.c -lpthread -lm
+
       - name: Build doom_goggles
         run: |
           apt-get install -y -qq git make >/dev/null 2>&1

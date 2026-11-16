@@ -1,0 +1,12 @@
+{
+  "id": "player",
+  "name": "Videos",
+  "version": "0.1.0",
+  "type": "app",
+  "so": null,
+  "launch": {
+    "binary": "/vendor/natartos/apps/player/player",
+    "display": true
+  },
+  "notes": "Video player: MPEG-1 .mpg from natartos/videos on the SD card, with audio through the speaker. Opened from the Videos tile on Home (launcher). No .so: nothing hooks dji_glasses."
+}

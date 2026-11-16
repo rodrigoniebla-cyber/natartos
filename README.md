@@ -43,6 +43,7 @@ See [SECURITY.md](SECURITY.md) for the trust model.
 | `input` | Key Injection | hook | no | experimental |
 | `splash` | Custom Splash | theme | no | in progress |
 | `launcher` | Home | app | no | untested |
+| `player` | Videos | app | no | untested |
 
 Mods are opt-in — you choose which to install. Each mod is a standalone `.so`
 loaded by the loader. To write your own, see [MOD_SPEC.md](MOD_SPEC.md) and the
@@ -61,6 +62,12 @@ A home screen with icon tiles: **DJI Goggles** (back to the stock UI with mods
 loaded), **PC Display**, **Doom**, and audio toggles. Your own tiles go in
 `/data/local/tmp/natartos_apps.conf`. It opens once per boot when mods start,
 and from **Home** in the More menu. See [mods/launcher](mods/launcher/README.md).
+
+### Videos
+
+Plays `.mpg` videos from `natartos/videos/` on the SD card, with sound through
+the speaker, from the **Videos** tile on Home. See
+[mods/player](mods/player/README.md) for the ffmpeg command to convert files.
 
 ### Doom
 

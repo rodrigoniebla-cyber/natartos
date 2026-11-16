@@ -7,5 +7,10 @@ See LICENSE for the full license text.
 
 ---
 
+Third-party code (see each directory for its license):
+  third_party/pl_mpeg   — pl_mpeg, MIT License, Copyright Dominic Szablewski
+  third_party/tinyalsa  — tinyalsa 1.1.1, BSD-3-Clause, Copyright The Android Open Source Project
+  include/stb_image.h   — stb_image, public domain / MIT
+
 Not affiliated with, authorized, or endorsed by DJI. DJI, Goggles 3, and
 related product names are trademarks of SZ DJI Technology Co., Ltd.
