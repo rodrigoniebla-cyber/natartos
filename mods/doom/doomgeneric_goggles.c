@@ -25,7 +25,9 @@
 #define FB_STRIDE (FB_WIDTH * 4)
 #define FB_SIZE   (FB_STRIDE * FB_HEIGHT)
 #define SHM_HEADER 64
-#define SHM_SIZE  (SHM_HEADER + FB_SIZE)
+/* Two pixel slots (same protocol as fb_receiver / include/natartos_fb.h): draw
+ * the back slot, publish via the counter; the overlay reads slot (counter & 1). */
+#define SHM_SIZE  (SHM_HEADER + 2 * FB_SIZE)
 #define SHM_PATH  "/data/local/tmp/fb_shared"
 
 #define SCALE 5
@@ -232,7 +234,8 @@ void DG_DrawFrame(void) {
     /* DG_ScreenBuffer is DOOM_W x DOOM_H, XRGB (uint32_t).
      * We scale 5x and center in 1920x1080 BGRA. */
     uint32_t *src = DG_ScreenBuffer;
-    uint32_t *dst = (uint32_t *)shm_pixels;
+    unsigned int c = __atomic_load_n(shm_counter, __ATOMIC_RELAXED);
+    uint32_t *dst = (uint32_t *)(shm_pixels + (size_t)((c + 1) & 1u) * FB_SIZE);  /* back slot */
 
     /* Top black bars */
     memset(dst, 0, OFF_Y * FB_WIDTH * 4);
@@ -262,7 +265,7 @@ void DG_DrawFrame(void) {
     memset(dst + bot_start * FB_WIDTH, 0, (FB_HEIGHT - bot_start) * FB_WIDTH * 4);
 
     /* Signal new frame */
-    __sync_fetch_and_add(shm_counter, 1);
+    __atomic_add_fetch(shm_counter, 1, __ATOMIC_RELEASE);
 }
 
 void DG_SleepMs(uint32_t ms) {

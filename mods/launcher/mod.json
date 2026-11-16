@@ -1,0 +1,17 @@
+{
+  "id": "launcher",
+  "name": "Home",
+  "version": "0.1.0",
+  "type": "app",
+  "so": "mod_launcher.so",
+  "source": "mod.c",
+  "menu": {
+    "label": "Home",
+    "action": "launch"
+  },
+  "launch": {
+    "binary": "/vendor/natartos/apps/launcher/launcher",
+    "display": true
+  },
+  "notes": "Home screen: icon grid of DJI Goggles (back to stock UI), PC Display, Doom, audio toggles and user tiles. Opens once per boot when mods start, and from the Home menu entry."
+}

@@ -67,6 +67,12 @@ docker run --rm \
     chmod 755 /dist/fb_receiver
     echo \"[natartos] fb_receiver (\$(stat -c%s /dist/fb_receiver) bytes)\"
   fi
+  # launcher: static aarch64 binary for the Home screen
+  if [ -f /mods/launcher/launcher.c ]; then
+    $CC -static -O2 -I/include -o /dist/launcher /mods/launcher/launcher.c
+    chmod 755 /dist/launcher
+    echo \"[natartos] launcher (\$(stat -c%s /dist/launcher) bytes)\"
+  fi
 "
 
 # Build dm_noverity (static aarch64 binary for runtime dm-verity bypass)
@@ -96,6 +102,11 @@ fi
 APPS_DIR="$BASE_DIR/assets/apps"
 if [ -d "$APPS_DIR" ]; then
     cp -r "$APPS_DIR" "$DIST_DIR/apps"
+fi
+# Home launcher → /vendor/natartos/apps/launcher/launcher (picked up by the manifest)
+if [ -f "$DIST_DIR/launcher" ]; then
+    mkdir -p "$DIST_DIR/apps/launcher"
+    cp "$DIST_DIR/launcher" "$DIST_DIR/apps/launcher/launcher"
 fi
 
 # --- Generate manifest.json (schema 1, toolya contract) ---

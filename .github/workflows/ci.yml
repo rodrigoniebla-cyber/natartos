@@ -28,7 +28,7 @@ jobs:
           CFLAGS="-shared -fPIC -O2 -fno-builtin -nostdlib"
           # Release builds ship only ready mods — skip untested/experimental/in-progress
           # ones and the dev template (README "Status" column is the source of truth).
-          SKIP_MODS="audio mute input splash template"
+          SKIP_MODS="audio mute input splash template launcher"
           for dir in mods/*/; do
             dir=$(basename "$dir")
             [ ! -f "mods/$dir/mod.json" ] && continue
@@ -51,6 +51,9 @@ jobs:
 
       - name: Build fb_receiver
         run: aarch64-linux-gnu-gcc -static -O2 -I include -o dist/fb_receiver mods/stream/fb_receiver.c -lm
+
+      - name: Build launcher (compile check — ships once tested on hardware)
+        run: aarch64-linux-gnu-gcc -static -O2 -Wall -I include -o /tmp/launcher mods/launcher/launcher.c
 
       - name: Build doom_goggles
         run: |

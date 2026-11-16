@@ -42,6 +42,7 @@ See [SECURITY.md](SECURITY.md) for the trust model.
 | `mute` | Audio Control | tweak | no | untested |
 | `input` | Key Injection | hook | no | experimental |
 | `splash` | Custom Splash | theme | no | in progress |
+| `launcher` | Home | app | no | untested |
 
 Mods are opt-in — you choose which to install. Each mod is a standalone `.so`
 loaded by the loader. To write your own, see [MOD_SPEC.md](MOD_SPEC.md) and the
@@ -53,6 +54,13 @@ The `menu` mod is a pure framework — it provides the `natartos_menu_register()
 API that other mods call to add items to the More menu. App mods (`doom`,
 `stream`) each register their own entry during the loader's `mod_register` phase.
 The menu mod never hardcodes app entries.
+
+### Home (launcher)
+
+A home screen with icon tiles: **DJI Goggles** (back to the stock UI with mods
+loaded), **PC Display**, **Doom**, and audio toggles. Your own tiles go in
+`/data/local/tmp/natartos_apps.conf`. It opens once per boot when mods start,
+and from **Home** in the More menu. See [mods/launcher](mods/launcher/README.md).
 
 ### Doom
 
