@@ -72,14 +72,16 @@ jobs:
           cp src/natartos_loader.so dist/
           cp deploy/inject.sh dist/
           chmod 644 dist/*.so
-          chmod 755 dist/doom_goggles dist/fb_receiver dist/dm_noverity
+          cp src/bootmenu dist/
+          chmod 755 dist/doom_goggles dist/fb_receiver dist/dm_noverity dist/bootmenu
           # icons (source assets); app binaries are built this run, not committed
           if [ -d assets/icons ]; then mkdir -p dist/icons && cp assets/icons/*.rgba dist/icons/ 2>/dev/null || true; fi
-          mkdir -p dist/apps/stream dist/apps/doom
+          mkdir -p dist/apps/stream dist/apps/doom dist/apps/bootmenu
           cp dist/fb_receiver dist/apps/stream/
           cp dist/doom_goggles dist/apps/doom/
+          cp dist/bootmenu dist/apps/bootmenu/
           cd dist
-          sha256sum *.so inject.sh dm_noverity fb_receiver doom_goggles > SHA256SUMS
+          sha256sum *.so inject.sh dm_noverity fb_receiver doom_goggles bootmenu > SHA256SUMS
 
       - name: Generate manifest (schema 1)
         run: |
@@ -198,12 +200,13 @@ jobs:
           # Flat asset names (GitHub asset names can't contain "/"), so the web
           # installer can match each manifest `file` basename exactly. Nested
           # dirs (icons, apps) are uploaded flat; apps binaries dup the top-level
-          # fb_receiver/doom_goggles, so only the top-level copies are uploaded.
+          # fb_receiver/doom_goggles/bootmenu, so only the top-level copies are uploaded.
           files: |
             dist/*.so
             dist/inject.sh
             dist/fb_receiver
             dist/doom_goggles
+            dist/bootmenu
             dist/dm_noverity
             dist/manifest.json
             dist/SHA256SUMS

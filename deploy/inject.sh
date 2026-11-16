@@ -5,6 +5,13 @@ MAX_CRASHES=5
 WINDOW_SEC=120
 LOG=/data/local/tmp/natartos_inject.log
 PIDFILE=/data/local/tmp/natartos_inject.pid
+# Boot menu: on the first start of a session, ask "Stock or Modified?" on the
+# goggles' screen. The answer lands in MODE_FILE ("stock" / "modified") and
+# holds for every respawn until the next `natartos start`.
+# Opt out with: touch /data/.natartos_bootmenu_off
+BOOTMENU=/vendor/natartos/apps/bootmenu/bootmenu
+BOOTMENU_OFF=/data/.natartos_bootmenu_off
+MODE_FILE=/data/local/tmp/natartos_mode
 
 log() { echo "$(date '+%H:%M:%S') $1" >> "$LOG"; }
 
@@ -25,7 +32,7 @@ fi
 echo $$ > "$PIDFILE"
 
 sleep 3
-rm -f /data/local/tmp/fb_shared
+rm -f /data/local/tmp/fb_shared "$MODE_FILE"
 stop dji_glasses 2>/dev/null
 log "stopped init service dji_glasses"
 sleep 1
@@ -34,6 +41,8 @@ PID=$(pidof dji_glasses)
 sleep 1
 
 build_preload() {
+    # Stock chosen on the boot menu → plain dji_glasses, no loader, no mods.
+    [ "$(cat "$MODE_FILE" 2>/dev/null)" = "stock" ] && return
     P=/vendor/natartos/natartos_loader.so
     for so in /vendor/natartos/mods/*.so; do
         s=$(basename "$so")
@@ -42,8 +51,17 @@ build_preload() {
     echo "$P"
 }
 
+# The menu draws through the overlay mod, so it needs that mod enabled.
+bootmenu_wanted() {
+    [ -x "$BOOTMENU" ] || return 1
+    [ -f "$BOOTMENU_OFF" ] && return 1
+    case ":$1:" in *hook_overlay.so:*) return 0 ;; esac
+    return 1
+}
+
 crash_count=0
 last_reset=$(date +%s)
+first_start=1
 
 while true; do
     # Each fresh dji_glasses starts clean: drop runtime overlay flags a previous
@@ -51,8 +69,24 @@ while true; do
     # otherwise makes the new overlay run cleanup→restart on every boot forever.
     rm -f /data/local/tmp/fb_stop /data/local/tmp/fb_override
     PRELOAD=$(build_preload)
-    export LD_PRELOAD="$PRELOAD"
-    log "start dji_glasses LD_PRELOAD=$PRELOAD"
+    if [ "$first_start" = 1 ]; then
+        first_start=0
+        if [ -n "$PRELOAD" ] && bootmenu_wanted "$PRELOAD"; then
+            # Starts modded; the menu waits for dji_glasses + overlay, then
+            # either hands the screen back (modified) or restarts it stock.
+            log "boot menu: launching"
+            LD_PRELOAD= "$BOOTMENU" </dev/null >/dev/null 2>&1 &
+        else
+            echo modified > "$MODE_FILE"
+        fi
+    fi
+    if [ -n "$PRELOAD" ]; then
+        export LD_PRELOAD="$PRELOAD"
+        log "start dji_glasses LD_PRELOAD=$PRELOAD"
+    else
+        unset LD_PRELOAD
+        log "start dji_glasses STOCK (no mods)"
+    fi
     /system/bin/dji_glasses -g -f
     EXIT=$?
     log "exited code=$EXIT"
@@ -61,7 +95,7 @@ while true; do
     # not a crash: respawn at once, don't touch the crash counter.
     if [ -f /data/local/tmp/natartos_restart ]; then
         rm -f /data/local/tmp/natartos_restart
-        log "intentional restart (app exit)"
+        log "intentional restart (app exit / boot menu)"
         continue
     fi
 

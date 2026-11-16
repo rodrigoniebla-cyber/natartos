@@ -17,6 +17,30 @@ natartos installs a native loader (`LD_PRELOAD`) and opt-in mods into
 your chosen mods. Mods are per-session — they activate when you start and
 last until the goggles reboot or power off.
 
+## Boot menu: Stock or Modified
+
+When mods start (`toolya natartos start`), the goggles first show a menu:
+
+- **Modified**: natartos with your enabled mods (the default)
+- **Stock**: the original DJI software, with no loader and no mods
+
+Move the 5D joystick to switch, then press the center to confirm. A short
+**BACK** press picks Modified. If you don't touch the stick, Modified starts
+after 10 seconds.
+
+Picking **Stock** restarts `dji_glasses` without `LD_PRELOAD`. Crash
+respawns stay stock until the next `natartos start`. The choice is written to
+`/data/local/tmp/natartos_mode`, and the menu logs to
+`/data/local/tmp/natartos_bootmenu.log`.
+
+The menu draws through the `overlay` mod, so it only appears when that mod is
+enabled and the loader is not in safe mode. In every other case the session
+starts modified, the same as before the menu existed. To turn the menu off:
+
+```
+adb shell touch /data/.natartos_bootmenu_off   # remove the file to turn it back on
+```
+
 ## Safety
 
 - **Crash guard** — if `dji_glasses` crashes 5 times within 120 seconds, the

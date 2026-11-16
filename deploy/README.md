@@ -26,4 +26,9 @@ Installed files on `/vendor` survive reboots. Only start needs repeating.
 1. `inject.sh` stops stock `dji_glasses`
 2. Rebuilds `LD_PRELOAD` path (loader + enabled mods)
 3. Starts `dji_glasses` with `LD_PRELOAD`
-4. Respawn loop: if process exits, restarts (up to 5 crashes in 120s)
+4. First start of the session: launches `apps/bootmenu/bootmenu`, which draws a
+   "Stock or Modified?" menu through the overlay. **Modified** hands the screen
+   back. **Stock** writes `stock` to `/data/local/tmp/natartos_mode` and
+   restarts `dji_glasses`, and `inject.sh` then runs it without `LD_PRELOAD`.
+5. Respawn loop: if the process exits, it restarts in the chosen mode (up to 5
+   crashes in 120s)
