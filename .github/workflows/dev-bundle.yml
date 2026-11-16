@@ -26,7 +26,8 @@ jobs:
           print('mods:', ids); print('files:', files)
           for need in ('launcher', 'mute', 'overlay', 'menu', 'stream'):
               assert need in ids, need
-          for need in ('/vendor/natartos/apps/launcher/launcher', '/vendor/natartos/apps/player/player'):
+          for need in ('/vendor/natartos/apps/launcher/launcher', '/vendor/natartos/apps/player/player',
+                       '/vendor/natartos/apps/stream/fb_receiver'):
               assert need in files, need
           "
           file dist/apps/launcher/launcher dist/apps/player/player

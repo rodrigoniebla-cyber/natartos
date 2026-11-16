@@ -111,6 +111,11 @@ APPS_DIR="$BASE_DIR/assets/apps"
 if [ -d "$APPS_DIR" ]; then
     cp -r "$APPS_DIR" "$DIST_DIR/apps"
 fi
+# PC Stream receiver → /vendor/natartos/apps/stream/fb_receiver (as release CI does)
+if [ -f "$DIST_DIR/fb_receiver" ]; then
+    mkdir -p "$DIST_DIR/apps/stream"
+    cp "$DIST_DIR/fb_receiver" "$DIST_DIR/apps/stream/fb_receiver"
+fi
 # Video player → /vendor/natartos/apps/player/player
 if [ -f "$DIST_DIR/player" ]; then
     mkdir -p "$DIST_DIR/apps/player"
