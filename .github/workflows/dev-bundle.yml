@@ -1,0 +1,43 @@
+name: Dev bundle
+
+# A ready-to-install natartos build of a work branch, including mods that are
+# not in releases yet (launcher, player, mute). Download the artifact, unpack,
+# then: toolya natartos install --local natartos-dist --mods ... --yes
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (scripts/build.sh, in Docker)
+        run: ./scripts/build.sh
+
+      - name: Check the bundle
+        run: |
+          python3 -c "
+          import json; m = json.load(open('dist/manifest.json'))
+          ids = [x['id'] for x in m['mods']]
+          files = [f['device_path'] for f in m['files']]
+          print('mods:', ids); print('files:', files)
+          for need in ('launcher', 'mute', 'overlay', 'menu', 'stream'):
+              assert need in ids, need
+          for need in ('/vendor/natartos/apps/launcher/launcher', '/vendor/natartos/apps/player/player'):
+              assert need in files, need
+          "
+          file dist/apps/launcher/launcher dist/apps/player/player
+
+      - name: Package
+        run: |
+          sudo chown -R "$(id -u)" dist
+          mv dist natartos-dist
+          tar -czf natartos-dist.tar.gz natartos-dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: natartos-dist
+          path: natartos-dist.tar.gz
