@@ -41,6 +41,44 @@ starts modified, the same as before the menu existed. To turn the menu off:
 adb shell touch /data/.natartos_bootmenu_off   # remove the file to turn it back on
 ```
 
+### Boot start (experimental, opt-in)
+
+> **Status: unverified.** This makes the menu appear at **power-on**, with no
+> USB and no `natartos start`. It is **off by default**, stays entirely on
+> `/vendor` (never `/system`, so no dm-verity brick class), and reuses the
+> existing anti-brick. It has **not** been validated on a device yet — treat the
+> first boots as a test on hardware you accept the risk of bricking.
+
+How it works: `natartos.rc` installs to `/vendor/etc/init/natartos.rc`, which
+Android init imports at boot. It starts `boot.sh`, which is a **no-op** unless
+you opted in. `boot.sh` sets SELinux permissive for the session (reset on every
+reboot, never a `/system` write), then runs `inject.sh` with the menu in **boot
+mode** — where no input or any failure lands on **Stock**. You must actively
+pick **Modified**.
+
+Enable (both steps required):
+
+```
+adb push deploy/natartos.rc /vendor/etc/init/natartos.rc   # or the release asset
+adb shell chmod 644 /vendor/etc/init/natartos.rc
+adb shell touch /data/.natartos_boot_enabled               # the master switch
+```
+
+Disable: `adb shell rm /data/.natartos_boot_enabled` (instant), or remove the
+`.rc` to drop boot start entirely. `toolya natartos uninstall` removes both.
+
+**Escape hatches**, if a modded boot ever misbehaves:
+- Power on and wait — the menu times out to **Stock**.
+- Power-cycle a few times — the loader's boot counter trips **safe mode** (mods
+  skipped) after repeated unhealthy boots.
+- `/data/.natartos_disabled` (`toolya natartos safe on`) forces stock next boot.
+
+**Known unknown:** the `seclabel` in `natartos.rc` is firmware-specific. If init
+rejects the service the goggles simply come up stock — check
+`/data/local/tmp/natartos_boot.log`. Boot start is **not** shipped in the
+default install; `boot.sh` is installed inert, and you add the `.rc` + flag by
+hand.
+
 ## Safety
 
 - **Crash guard** — if `dji_glasses` crashes 5 times within 120 seconds, the

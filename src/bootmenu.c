@@ -46,6 +46,7 @@
 #define SHM_PATH     TMP "fb_shared"
 #define FLAG_PATH    TMP "fb_override"
 #define MODE_PATH    TMP "natartos_mode"
+#define MENU_MODE_PATH TMP "natartos_menu_mode"   /* "boot" → launched at power-on */
 #define RESTART_PATH TMP "natartos_restart"
 #define LOG_PATH     TMP "natartos_bootmenu.log"
 #define BOOTCOUNT_PATH "/data/.natartos_bootcount"
@@ -416,10 +417,31 @@ static void go_stock(int pid) {
     unlink(SHM_PATH);
 }
 
+/* The exit taken on anything that isn't an explicit pick (timeout, idle, the
+ * overlay going away, dji_glasses dying under us). Session mode: fall back to
+ * Modified, the running UI. Boot mode: fall back to Stock — an unattended or
+ * half-failed power-on must never silently come up modified. */
+static void go_default(int boot_mode, int pid, const char *why) {
+    if (boot_mode) go_stock(pid);   /* writes stock, flags restart, kills pid */
+    else           go_modified(why);
+}
+
 int main(void) {
     signal(SIGPIPE, SIG_IGN);
     g_log = fopen(LOG_PATH, "w");
-    logmsg("bootmenu: start");
+
+    /* Boot mode: launched at power-on (no USB attached) rather than from
+     * `natartos start`. The safe default then flips — an unattended or failed
+     * boot must land on STOCK, never silently come up modified. The user has
+     * to actively pick Modified. From `natartos start` the default stays
+     * Modified (you're right there at the keyboard either way). */
+    char mm[16] = {0};
+    int mfd = open(MENU_MODE_PATH, O_RDONLY);
+    if (mfd >= 0) { ssize_t n = read(mfd, mm, sizeof(mm) - 1); (void)n; close(mfd); }
+    unlink(MENU_MODE_PATH);   /* consume once — a stale flag must not bias a later USB start */
+    int boot_mode = (strncmp(mm, "boot", 4) == 0);
+    const char *default_mode = boot_mode ? "stock\n" : "modified\n";
+    logmsg("bootmenu: start (%s mode)", boot_mode ? "boot" : "session");
 
     /* 1. Wait for the modded dji_glasses to be up with the overlay mapped. */
     int pid = 0;
@@ -432,8 +454,8 @@ int main(void) {
     }
     if (!pid) {
         /* Can't show anything — keep the old behaviour (mods on). */
-        write_file(MODE_PATH, "modified\n");
-        logmsg("dji_glasses/overlay not ready after %ds, staying modified", READY_TIMEOUT_S);
+        write_file(MODE_PATH, default_mode);
+        logmsg("dji_glasses/overlay not ready after %ds, default=%s", READY_TIMEOUT_S, default_mode);
         return 0;
     }
     logmsg("dji_glasses pid=%d, overlay mapped", pid);
@@ -446,14 +468,14 @@ int main(void) {
     int sfd = open(STATUS_PATH, O_RDONLY);
     if (sfd >= 0) { ssize_t n = read(sfd, status, sizeof(status) - 1); (void)n; close(sfd); }
     if (strncmp(status, "active", 6) != 0) {
-        write_file(MODE_PATH, "modified\n");
-        logmsg("loader status '%s' (not active), skipping menu", status);
+        write_file(MODE_PATH, default_mode);
+        logmsg("loader status '%s' (not active), skipping menu, default=%s", status, default_mode);
         return 0;
     }
 
     /* 2. Take over the screen. */
-    if (shm_open_map() < 0) { write_file(MODE_PATH, "modified\n"); return 0; }
-    int sel = OPT_MODIFIED;
+    if (shm_open_map() < 0) { write_file(MODE_PATH, default_mode); return 0; }
+    int sel = boot_mode ? OPT_STOCK : OPT_MODIFIED;
     int countdown = COUNTDOWN_SEC;
     render_menu(back_slot(), sel, countdown);
     publish();
@@ -474,18 +496,18 @@ int main(void) {
         if (!pid_alive(pid)) {
             /* dji_glasses died under us; inject.sh respawns it modded. */
             logmsg("dji_glasses gone");
-            write_file(MODE_PATH, "modified\n");
+            write_file(MODE_PATH, default_mode);
             break;
         }
         if (!file_exists(FLAG_PATH)) {
-            /* Overlay was stopped (long BACK, or a restart) → leave it modded. */
-            go_modified("overlay stopped");
+            /* Overlay stopped (long BACK, or a restart). */
+            go_default(boot_mode, pid, "overlay stopped");
             break;
         }
 
         if (in != IN_NONE) last_input = now_ms();
         else if (now_ms() - last_input > IDLE_TIMEOUT_S * 1000L) {
-            go_modified("idle");
+            go_default(boot_mode, pid, "idle");
             break;
         }
 
@@ -504,7 +526,7 @@ int main(void) {
 
         if (countdown >= 0 && now_ms() >= tick) {
             tick += 1000;
-            if (--countdown <= 0) { go_modified("timeout"); break; }
+            if (--countdown <= 0) { go_default(boot_mode, pid, "timeout"); break; }
             redraw = 1;
         }
 

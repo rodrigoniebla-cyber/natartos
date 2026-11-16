@@ -71,9 +71,11 @@ jobs:
           mkdir -p dist
           cp src/natartos_loader.so dist/
           cp deploy/inject.sh dist/
+          cp deploy/boot.sh dist/
+          cp deploy/natartos.rc dist/
           chmod 644 dist/*.so
           cp src/bootmenu dist/
-          chmod 755 dist/doom_goggles dist/fb_receiver dist/dm_noverity dist/bootmenu
+          chmod 755 dist/doom_goggles dist/fb_receiver dist/dm_noverity dist/bootmenu dist/boot.sh
           # icons (source assets); app binaries are built this run, not committed
           if [ -d assets/icons ]; then mkdir -p dist/icons && cp assets/icons/*.rgba dist/icons/ 2>/dev/null || true; fi
           mkdir -p dist/apps/stream dist/apps/doom dist/apps/bootmenu
@@ -81,7 +83,7 @@ jobs:
           cp dist/doom_goggles dist/apps/doom/
           cp dist/bootmenu dist/apps/bootmenu/
           cd dist
-          sha256sum *.so inject.sh dm_noverity fb_receiver doom_goggles bootmenu > SHA256SUMS
+          sha256sum *.so inject.sh boot.sh natartos.rc dm_noverity fb_receiver doom_goggles bootmenu > SHA256SUMS
 
       - name: Generate manifest (schema 1)
         run: |
@@ -98,7 +100,7 @@ jobs:
 
           # files
           files = []
-          for name, path, mode in [('inject.sh', '/vendor/natartos/inject.sh', '0755')]:
+          for name, path, mode in [('inject.sh', '/vendor/natartos/inject.sh', '0755'), ('boot.sh', '/vendor/natartos/boot.sh', '0755')]:
               with open(name, 'rb') as f:
                   sha = hashlib.sha256(f.read()).hexdigest()
               files.append({'file': name, 'device_path': path, 'mode': mode, 'sha256': sha})
@@ -204,6 +206,8 @@ jobs:
           files: |
             dist/*.so
             dist/inject.sh
+            dist/boot.sh
+            dist/natartos.rc
             dist/fb_receiver
             dist/doom_goggles
             dist/bootmenu
