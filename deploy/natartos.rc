@@ -1,25 +1,19 @@
-# natartos.rc — OPT-IN boot start for natartos.
+# natartos.rc — OPT-IN boot start (installed to /vendor/etc/init, never /system).
 #
-# Installed to /vendor/etc/init/natartos.rc (NEVER /system). Android init
-# imports every /vendor/etc/init/*.rc at boot. This adds one oneshot service
-# that runs boot.sh after the system reports boot-complete.
+# Runs boot.sh at power-on as the vendor_init domain. That domain is made
+# permissive by the natartos SELinux patch (precompiled_sepolicy on /vendor);
+# boot.sh then sets global permissive via devmem and launches the menu.
 #
-# This file running does NOT by itself start mods: boot.sh is a no-op unless
-# the user created /data/.natartos_boot_enabled. Delete this .rc (or run
-# `toolya natartos uninstall`) to remove boot start entirely.
-#
-# NOTE (device-specific): the seclabel below is the piece most likely to need
-# adjusting per firmware build. If init refuses the service, nothing starts and
-# the goggles come up STOCK — a non-event, not a brick. Verify in
-# /data/local/tmp/natartos_boot.log and dmesg before trusting it.
+# Trigger: dji.glasses_service=1 — the property DJI's init sets to start the
+# display (sys.boot_completed is never set on this firmware).
 
 service natartos_boot /system/bin/sh /vendor/natartos/boot.sh
     class late_start
     user root
     group root system
-    seclabel u:r:su:s0
+    seclabel u:r:vendor_init:s0
     oneshot
     disabled
 
-on property:sys.boot_completed=1
+on property:dji.glasses_service=1
     start natartos_boot
